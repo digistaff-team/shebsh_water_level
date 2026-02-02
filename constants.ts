@@ -1,5 +1,5 @@
 // API Configuration
-// NOTE: Ideally these should be in process.env, but for the purpose of this generated app, 
+// NOTE: Ideally these should be in process.env, but for the purpose of this generated app,
 // we assume they are injected or the user will replace them.
 
 export const TARGET_URL = 'https://allrivers.info/gauge/shebsh-grigoryevskaya/waterlevel';
