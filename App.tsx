@@ -166,7 +166,7 @@ const App: React.FC = () => {
                         <StatCard
               title="До моста"
               value={latest ? `${Math.max(0, Math.round(-302 - latest.water_level))} см` : '--'}
-              color={latest && latest.water_level >= -302 ? 'text-red-600' : undefined}
+              color={latest && latest.water_level >= -302 ? 'text-red-600' : 'text-green-600'}
               subtext={latest && latest.water_level >= -202 ? "Мост затоплен" : "Мост работает"}
             />        </div>
 
