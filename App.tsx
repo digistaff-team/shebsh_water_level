@@ -164,15 +164,11 @@ const App: React.FC = () => {
               subtext={latest ? (latest.change_24h > 0 ? 'Рост' : latest.change_24h < 0 ? 'Падает' : 'Стабильно') : undefined}
             />
                         <StatCard
-                          title="Тренд"
-                          value={latest ? (
-                            latest.trend === Trend.RISING ? 'Рост' :
-                            latest.trend === Trend.FALLING ? 'Падает' :
-                            latest.trend === Trend.STABLE ? 'Стабильно' : '--'
-                          ) : '--'}
-                          color={latest?.trend === Trend.RISING ? 'text-red-600' : latest?.trend === Trend.FALLING ? 'text-emerald-600' : 'text-slate-600'}
-                          subtext="Анализ дельты за 24ч"
-                        />        </div>
+              title="До моста"
+              value={latest ? `${Math.max(0, Math.round(-302 - latest.water_level))} см` : '--'}
+              color={latest && latest.water_level >= -302 ? 'text-red-600' : undefined}
+              subtext={latest && latest.water_level >= -202 ? "Мост затоплен" : "Мост работает"}
+            />        </div>
 
         {/* Chart Section */}
         <div className="space-y-4">

@@ -6,7 +6,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Label // Add Label to imports
 } from 'recharts';
 import { WaterRecord } from '../types';
 
@@ -37,38 +38,50 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
         <AreaChart
           data={formattedData}
           margin={{
-            top: 10,
-            right: 30,
-            left: 0,
-            bottom: 0,
+            top: 5,
+            right: 20,
+            left: 20, // Increased left margin for Y-axis label/ticks
+            bottom: 20, // Increased bottom margin for X-axis labels
           }}
         >
+           <defs>
+            <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
           <XAxis 
             dataKey="date" 
             tick={{ fill: '#64748b', fontSize: 12 }} 
             axisLine={false}
             tickLine={false}
+            tickMargin={10} // Added tickMargin to give more space between tick and label
           />
           <YAxis 
             tick={{ fill: '#64748b', fontSize: 12 }} 
             axisLine={false}
             tickLine={false}
-            unit=" см"
-            domain={['auto', 'auto']}
-          />
-          <Tooltip 
-            contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
-            formatter={(value: number) => [`${value} см`, 'Уровень']}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="water_level" 
-            stroke="#0ea5e9" 
-            fill="#e0f2fe" 
-            strokeWidth={2}
-          />
+            tickMargin={10} // Added tickMargin to give more space between tick and label
+          >
+            <Label 
+              value="Уровень (см)" 
+              position="insideLeft" 
+              angle={-90} 
+              style={{ textAnchor: 'middle', fill: '#64748b', fontSize: 14 }}
+            />
+          </YAxis>
+          <Tooltip
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
+                      formatter={(value: number) => [`${value} см`, 'Уровень']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="water_level"
+                      stroke="#0ea5e9"
+                      fill="#e0f2fe"
+                      strokeWidth={2}          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
