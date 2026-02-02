@@ -9,7 +9,7 @@ const protalkBotId = import.meta.env.VITE_PROTALK_BOT_ID;
  */
 export const fetchRawTextFromUrl = async (): Promise<string> => {
   // Construct the prompt to force the bot to use function #18
-  const message = `Используй функцию №18 'get_text_from_url', чтобы получить весь текстовый контент со страницы ${TARGET_URL}. Верни полученный текст.`;
+  const message = `Используй функцию №18 'get_text_from_url', чтобы прочитать со страницы ${TARGET_URL} сведения о текущем уровне воды и изменении уровня за прошедшие 24 часа.`;
 
   const payload = {
     bot_id: protalkBotId,
