@@ -1,0 +1,5 @@
+{
+  "name": "Shebsh River Monitor",
+  "description": "Monitors water levels at Shebsh-Grigoryevskaya via ProTalk API and visualizes trends using Gemini for data extraction and Supabase for storage.",
+  "requestFramePermissions": []
+}
