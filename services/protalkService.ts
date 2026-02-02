@@ -46,31 +46,37 @@ export const fetchRawTextFromUrl = async (): Promise<string> => {
  * Supports negative numbers and decimal values.
  */
 export const parseProTalkRawText = (rawText: string): ExtractedWaterData => {
-  // Regex для "Уровень воды: -XXX.XX см" (с учетом минуса и дробной части)
-  const waterLevelMatch = rawText.match(/Уровень воды:\s*(-?\d+(?:[.,]\d+)?)\s*c?м/i);
+  // Ищем ВСЕ числа, за которыми следует "см" или "cм" (кириллица или латиница)
+  // Используем Unicode для кириллической "с" и латинской "c"
+  const allNumbers = [...rawText.matchAll(/(-?\d+(?:[.,]\d+)?)\s*[cс]м\.?/gi)];
   
-  // Regex для "Изменение за 24 часа: [+-]YYY.YY см" (с учетом знака и дробной части)
-  const change24hMatch = rawText.match(/(?:Изменение|Изменение за 24 часа):\s*([+-]?\d+(?:[.,]\d+)?)\s*c?м/i);
-
-  if (!waterLevelMatch || !change24hMatch) {
-    console.error("Raw text for parsing:", rawText);
+  console.log("Raw text:", rawText);
+  console.log("Found numbers:", allNumbers.map(m => m[1]));
+  
+  if (allNumbers.length < 2) {
+    // Попытка альтернативного парсинга - просто ищем все числа
+    const justNumbers = [...rawText.matchAll(/(-?\d+(?:[.,]\d+)?)/g)];
+    console.log("All numbers in text:", justNumbers.map(m => m[1]));
+    
     throw new Error(
-      "Could not parse water level or 24h change from ProTalk raw text. " +
-      "Expected format: 'Уровень воды: XXX см. Изменение за 24 часа: YYY см.' " +
-      "Received: " + rawText
+      `Could not find enough numeric values with "см". Found: ${allNumbers.length}. ` +
+      `All numbers found: ${justNumbers.map(m => m[1]).join(', ')}. ` +
+      `Text: ${rawText}`
     );
   }
 
-  // Заменяем запятую на точку для корректного парсинга
-  const water_level = parseFloat(waterLevelMatch[1].replace(',', '.'));
-  const change_24h = parseFloat(change24hMatch[1].replace(',', '.'));
+  // Первое число - уровень воды, второе - изменение
+  const water_level = parseFloat(allNumbers[0][1].replace(',', '.'));
+  const change_24h = parseFloat(allNumbers[1][1].replace(',', '.'));
 
   if (isNaN(water_level) || isNaN(change_24h)) {
-    console.error("Parsed values - Water Level:", water_level, "Change 24h:", change_24h);
     throw new Error(
-      `Parsed values are not valid numbers. Water Level: ${waterLevelMatch[1]}, Change: ${change24hMatch[1]}`
+      `Failed to parse numbers. Water level: ${allNumbers[0][1]}, Change: ${allNumbers[1][1]}`
     );
   }
+
+  console.log("Parsed successfully:", { water_level, change_24h });
 
   return { water_level, change_24h };
 };
+
