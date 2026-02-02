@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWaterHistory, fetchLatestRecord, saveWaterRecord } from './services/supabaseClient';
-import { fetchRawTextFromUrl } from './services/protalkService';
-import { parseWaterData } from './services/geminiService';
+import { fetchRawTextFromUrl, parseProTalkRawText } from './services/protalkService';
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';
 import StatCard from './components/StatCard';
@@ -42,7 +41,7 @@ const App: React.FC = () => {
       }
 
     } catch (err: any) {
-      setError(err.message || 'Failed to load history');
+      setError(err.message || 'Не удалось загрузить историю');
     } finally {
       setIsLoading(false);
     }
@@ -64,9 +63,9 @@ const App: React.FC = () => {
       console.log('Fetching raw text from ProTalk...');
       const rawText = await fetchRawTextFromUrl();
 
-      // 2. Parse Text via Gemini
-      console.log('Parsing text with Gemini...');
-      const extracted = await parseWaterData(rawText);
+      // 2. Parse Text from ProTalk raw response
+      console.log('Parsing raw text from ProTalk...');
+      const extracted = parseProTalkRawText(rawText);
 
       // 3. Calculate Trend
       let trend: Trend = Trend.STABLE;
@@ -91,7 +90,7 @@ const App: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to update water data');
+      setError(err.message || 'Не удалось обновить данные о воде');
     } finally {
       setIsUpdating(false);
     }
@@ -106,7 +105,7 @@ const App: React.FC = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-water-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
             </svg>
-            <h1 className="text-xl font-bold text-slate-800">Shebsh Monitor</h1>
+            <h1 className="text-xl font-bold text-slate-800">Монитор реки Шебш</h1>
           </div>
           
           <button 
@@ -124,14 +123,14 @@ const App: React.FC = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                Обработка...
               </>
             ) : (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Update Now
+                Обновить сейчас
               </>
             )}
           </button>
@@ -153,29 +152,32 @@ const App: React.FC = () => {
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
-              title="Current Water Level" 
-              value={latest ? `${latest.water_level} cm` : '--'} 
-              subtext={latest?.created_at ? `Last updated: ${new Date(latest.created_at).toLocaleDateString()}` : 'No data'}
+              title="Текущий уровень воды" 
+              value={latest ? `${latest.water_level} см` : '--'} 
+              subtext={latest?.created_at ? `Обновлено: ${new Date(latest.created_at).toLocaleDateString()}` : 'Нет данных'}
               color="text-water-600"
             />
             <StatCard 
-              title="24h Change" 
-              value={latest ? `${Math.abs(latest.change_24h)} cm` : '--'} 
+              title="Изменение за 24ч" 
+              value={latest ? `${Math.abs(latest.change_24h)} см` : '--'} 
               trend={latest ? (latest.change_24h > 0 ? 'up' : latest.change_24h < 0 ? 'down' : 'neutral') : 'neutral'}
-              subtext={latest ? (latest.change_24h > 0 ? 'Rising' : latest.change_24h < 0 ? 'Falling' : 'Stable') : undefined}
+              subtext={latest ? (latest.change_24h > 0 ? 'Рост' : latest.change_24h < 0 ? 'Падает' : 'Стабильно') : undefined}
             />
-            <StatCard 
-              title="Trend" 
-              value={latest ? latest.trend : '--'}
-              color={latest?.trend === Trend.RISING ? 'text-red-600' : latest?.trend === Trend.FALLING ? 'text-emerald-600' : 'text-slate-600'}
-              subtext="Analysis based on 24h delta"
-            />
-        </div>
+                        <StatCard
+                          title="Тренд"
+                          value={latest ? (
+                            latest.trend === Trend.RISING ? 'Рост' :
+                            latest.trend === Trend.FALLING ? 'Падает' :
+                            latest.trend === Trend.STABLE ? 'Стабильно' : '--'
+                          ) : '--'}
+                          color={latest?.trend === Trend.RISING ? 'text-red-600' : latest?.trend === Trend.FALLING ? 'text-emerald-600' : 'text-slate-600'}
+                          subtext="Анализ дельты за 24ч"
+                        />        </div>
 
         {/* Chart Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-800">Trend Visualization</h2>
+            <h2 className="text-xl font-bold text-slate-800">Визуализация тренда</h2>
           </div>
           {isLoading && history.length === 0 ? (
              <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center">
@@ -184,7 +186,7 @@ const App: React.FC = () => {
                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Loading history...
+                  Загрузка истории...
                 </span>
              </div>
           ) : (
@@ -193,7 +195,7 @@ const App: React.FC = () => {
         </div>
 
         <div className="text-center text-sm text-slate-400">
-           Data source: {latest ? 'ProTalk / AllRivers.info' : 'Waiting for connection...'}
+           Источник данных: {latest ? 'ProTalk / AllRivers.info' : 'Ожидание соединения...'}
         </div>
       </main>
     </div>

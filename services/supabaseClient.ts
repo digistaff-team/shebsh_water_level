@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_TABLE } from '../constants';
+import { SUPABASE_TABLE } from '../constants';
 import { WaterRecord } from '../types';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+
 // Initialize the client conditionally to prevent 'supabaseUrl is required' error on load
-const supabase = (SUPABASE_URL && SUPABASE_KEY) 
-  ? createClient(SUPABASE_URL, SUPABASE_KEY) 
+const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
   : null;
 
 export const fetchWaterHistory = async (): Promise<WaterRecord[]> => {

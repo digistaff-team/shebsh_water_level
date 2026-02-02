@@ -25,14 +25,14 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
   if (data.length === 0) {
     return (
         <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg border border-dashed border-slate-300">
-            <p className="text-slate-400">No data available for chart</p>
+            <p className="text-slate-400">Нет данных для графика</p>
         </div>
     )
   }
 
   return (
     <div className="h-[400px] w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4">Historical Water Levels</h3>
+      <h3 className="text-lg font-semibold text-slate-800 mb-4">История уровней воды</h3>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={formattedData}
@@ -54,13 +54,13 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
             tick={{ fill: '#64748b', fontSize: 12 }} 
             axisLine={false}
             tickLine={false}
-            unit=" cm"
+            unit=" см"
             domain={['auto', 'auto']}
           />
           <Tooltip 
             contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
-            formatter={(value: number) => [`${value} cm`, 'Level']}
+            formatter={(value: number) => [`${value} см`, 'Уровень']}
           />
           <Area 
             type="monotone" 
