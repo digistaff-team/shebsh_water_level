@@ -32,7 +32,7 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
 
   return (
     <div className="h-[400px] w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4">История уровней воды</h3>
+      <h3 className="text-sm font-semibold text-slate-800 mb-4">История изменений</h3>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={formattedData}
