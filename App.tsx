@@ -177,7 +177,7 @@ const App: React.FC = () => {
         {/* Chart Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-800">Визуализация тренда</h2>
+            <h2 className="text-xl font-bold text-slate-800">Изменение уровня воды</h2>
           </div>
           {isLoading && history.length === 0 ? (
              <div className="h-[400px] w-full bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center">
@@ -195,7 +195,7 @@ const App: React.FC = () => {
         </div>
 
         <div className="text-center text-sm text-slate-400">
-           Источник данных: {latest ? 'ProTalk / AllRivers.info' : 'Ожидание соединения...'}
+           Источник данных: {latest ? 'AllRivers.info' : 'Ожидание соединения...'}
         </div>
       </main>
     </div>
