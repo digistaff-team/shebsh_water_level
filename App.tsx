@@ -105,7 +105,7 @@ const App: React.FC = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-water-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
             </svg>
-            <h1 className="text-xl font-bold text-slate-800">Монитор реки Шебш</h1>
+            <h1 className="text-xl font-bold text-slate-800">Уровень реки Шебш</h1>
           </div>
           
           <button 
