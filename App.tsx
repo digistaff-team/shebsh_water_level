@@ -4,6 +4,7 @@ import { fetchRawTextFromUrl, parseProTalkRawText } from './services/protalkServ
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';
 import StatCard from './components/StatCard';
+import { BRIDGE_LEVEL_CM } from './constants';
 
 const App: React.FC = () => {
   const [history, setHistory] = useState<WaterRecord[]>([]);
@@ -165,9 +166,9 @@ const App: React.FC = () => {
             />
                         <StatCard
               title="До моста"
-              value={latest ? `${Math.max(0, Math.round(-302 - latest.water_level))} см` : '--'}
-              color={latest && latest.water_level >= -302 ? 'text-red-600' : 'text-green-600'}
-              subtext={latest && latest.water_level >= -202 ? "Мост затоплен" : "Мост работает"}
+              value={latest ? `${Math.max(0, Math.round(BRIDGE_LEVEL_CM - latest.water_level))} см` : '--'}
+              color={latest && latest.water_level >= BRIDGE_LEVEL_CM ? 'text-red-600' : 'text-green-600'}
+              subtext={latest && latest.water_level >= BRIDGE_LEVEL_CM ? "Мост затоплен" : "Мост работает"}
             />        </div>
 
         {/* Chart Section */}
