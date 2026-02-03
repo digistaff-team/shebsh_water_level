@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Label // Add Label to imports
 } from 'recharts';
+import { GAUGING_STATION_ZERO_BSV } from '../constants';
 import { WaterRecord } from '../types';
 
 interface WaterChartProps {
@@ -16,14 +17,35 @@ interface WaterChartProps {
 }
 
 const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
-  // Format data for chart
-  const formattedData = data.map(item => ({
+  // Filter data to get only the latest record for each day
+  const latestDataPerDay = React.useMemo(() => {
+    const latestByDay = new Map<string, WaterRecord>();
+
+    data.forEach(record => {
+      if (!record.created_at) return;
+      const recordDate = new Date(record.created_at);
+      const dayKey = recordDate.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
+      const existingRecord = latestByDay.get(dayKey);
+
+      if (!existingRecord || recordDate.getTime() > new Date(existingRecord.created_at!).getTime()) {
+        latestByDay.set(dayKey, record);
+      }
+    });
+    
+    // Sort the filtered data by date before returning
+    return Array.from(latestByDay.values()).sort((a, b) => new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime());
+  }, [data]);
+
+  // Format data for chart, converting water level to BSV meters
+  const formattedData = latestDataPerDay.map(item => ({
     ...item,
     date: item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'N/A',
-    fullDate: item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'
+    fullDate: item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A',
+    water_level_bsv: (item.water_level / 100) + GAUGING_STATION_ZERO_BSV,
   }));
 
-  if (data.length === 0) {
+  if (latestDataPerDay.length === 0) {
     return (
         <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg border border-dashed border-slate-300">
             <p className="text-slate-400">Нет данных для графика</p>
@@ -33,7 +55,7 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
 
   return (
     <div className="h-[400px] w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-      <h3 className="text-sm font-semibold text-slate-800 mb-4">История изменений</h3>
+      <h3 className="text-sm font-semibold text-slate-800 mb-4">История изменений (последнее за день)</h3>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={formattedData}
@@ -59,29 +81,32 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
             tickMargin={10} // Added tickMargin to give more space between tick and label
           />
           <YAxis 
+            domain={['dataMin - 0.1', 'dataMax + 0.1']}
+            tickFormatter={(tick) => tick.toFixed(2)}
             tick={{ fill: '#64748b', fontSize: 12 }} 
             axisLine={false}
             tickLine={false}
-            tickMargin={10} // Added tickMargin to give more space between tick and label
+            tickMargin={10} 
           >
             <Label 
-              value="Уровень (см)" 
+              value="Уровень (м, БСВ)" 
               position="insideLeft" 
               angle={-90} 
               style={{ textAnchor: 'middle', fill: '#64748b', fontSize: 14 }}
             />
           </YAxis>
           <Tooltip
-                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
-                      formatter={(value: number) => [`${value} см`, 'Уровень']}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="water_level"
-                      stroke="#0ea5e9"
-                      fill="#e0f2fe"
-                      strokeWidth={2}          />
+            contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
+            formatter={(value: number) => [`${value.toFixed(3)} м (БСВ)`, 'Уровень']}
+          />
+          <Area
+            type="monotone"
+            dataKey="water_level_bsv"
+            stroke="#0ea5e9"
+            fill="url(#colorWater)"
+            strokeWidth={2}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

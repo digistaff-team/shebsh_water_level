@@ -4,7 +4,7 @@ import { fetchRawTextFromUrl, parseProTalkRawText } from './services/protalkServ
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';
 import StatCard from './components/StatCard';
-import { BRIDGE_LEVEL_CM } from './constants';
+import { BRIDGE_LEVEL_CM, GAUGING_STATION_ZERO_BSV, HIGH_FLOOD_LEVEL_BSV } from './constants';
 
 const App: React.FC = () => {
   const [history, setHistory] = useState<WaterRecord[]>([]);
@@ -154,7 +154,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               title="Текущий уровень воды" 
-              value={latest ? `${latest.water_level} см` : '--'} 
+              value={latest ? `${((latest.water_level / 100) + GAUGING_STATION_ZERO_BSV).toFixed(3)} м` : '--'} 
               subtext={latest?.created_at ? `Обновлено: ${new Date(latest.created_at).toLocaleDateString()}` : 'Нет данных'}
               color="text-water-600"
             />
@@ -168,7 +168,7 @@ const App: React.FC = () => {
               title="До моста"
               value={latest ? `${Math.max(0, Math.round(BRIDGE_LEVEL_CM - latest.water_level))} см` : '--'}
               color={latest && latest.water_level >= BRIDGE_LEVEL_CM ? 'text-red-600' : 'text-green-600'}
-              subtext={latest && latest.water_level >= BRIDGE_LEVEL_CM ? "Мост затоплен" : "Мост работает"}
+              subtext={latest && ((latest.water_level / 100) + GAUGING_STATION_ZERO_BSV) >= HIGH_FLOOD_LEVEL_BSV ? "Мост затоплен" : "Мост работает"}
             />        </div>
 
         {/* Chart Section */}
