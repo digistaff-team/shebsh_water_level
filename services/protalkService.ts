@@ -5,9 +5,40 @@ const protalkBotToken = import.meta.env.VITE_PROTALK_BOT_TOKEN;
 const protalkBotId = import.meta.env.VITE_PROTALK_BOT_ID;
 
 /**
+ * Clears the chat context by sending /clear command
+ */
+const clearChatContext = async (): Promise<void> => {
+  const payload = {
+    bot_id: protalkBotId,
+    chat_id: PROTALK_CHAT_ID,
+    message: '/clear'
+  };
+
+  try {
+    await fetch(`${PROTALK_API_URL}/ask/${protalkBotToken}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    // Игнорируем ответ - просто ждем небольшую паузу
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+  } catch (error) {
+    console.warn("Failed to clear context, continuing anyway:", error);
+    // Не бросаем ошибку - продолжаем работу даже если clear не сработал
+  }
+};
+
+/**
  * Sends a command to the ProTalk bot to scrape the target URL using function #18.
  */
 export const fetchRawTextFromUrl = async (): Promise<string> => {
+  // Очищаем контекст перед запросом
+  await clearChatContext();
+  
   // Обновленный промпт для получения корректного формата
   const message = `Запусти функцию №18 'get_text_from_url', прочитай со страницы ${TARGET_URL} сведения о текущем уровне воды и изменении уровня за прошедшие 24 часа и верни СТРОГО в формате: 'Уровень воды: XXX см. Изменение за 24 часа: YYY см.' (где XXX и YYY - числа с возможным знаком минус и дробной частью)`;
 

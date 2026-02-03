@@ -161,7 +161,7 @@ const App: React.FC = () => {
               title="Изменение за 24ч" 
               value={latest ? `${Math.abs(latest.change_24h)} см` : '--'} 
               trend={latest ? (latest.change_24h > 0 ? 'up' : latest.change_24h < 0 ? 'down' : 'neutral') : 'neutral'}
-              subtext={latest ? (latest.change_24h > 0 ? 'Рост' : latest.change_24h < 0 ? 'Падает' : 'Стабильно') : undefined}
+              subtext={latest ? (latest.change_24h > 0 ? 'Растёт' : latest.change_24h < 0 ? 'Падает' : 'Стабилен') : undefined}
             />
                         <StatCard
               title="До моста"
