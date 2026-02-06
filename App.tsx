@@ -154,7 +154,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               title="Текущий уровень воды" 
-              value={latest ? `${((latest.water_level / 100) + GAUGING_STATION_ZERO_BSV).toFixed(3)} м` : '--'} 
+              value={latest ? `${((latest.water_level / 100) + GAUGING_STATION_ZERO_BSV).toFixed(2)} м` : '--'} 
               subtext={latest?.created_at ? `Обновлено: ${new Date(latest.created_at).toLocaleDateString()}` : 'Нет данных'}
               color="text-water-600"
             />
