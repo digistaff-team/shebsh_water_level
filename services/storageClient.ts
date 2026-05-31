@@ -1,9 +1,10 @@
 import { WaterRecord } from '../types';
 
-// Remote history snapshot maintained by the daily GitHub Actions job.
+// Remote history is served by api/history.ts, which reads two Vercel KV
+// ZSETs maintained by the hourly cron in api/cron/snapshot.ts.
 // Local writes (manual "Обновить") are kept in localStorage and merged
 // with the remote on read.
-const HISTORY_URL = '/history.json';
+const HISTORY_URL = '/api/history';
 const LOCAL_KEY = 'water_levels_local';
 
 let remoteCache: WaterRecord[] | null = null;
