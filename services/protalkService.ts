@@ -1,8 +1,11 @@
-import { PROTALK_API_URL, PROTALK_CHAT_ID, TARGET_URL } from '../constants';
-import { ProTalkResponse, ExtractedWaterData } from '../types';
+import { PROTALK_EU_API_URL, TARGET_URL } from '../constants';
+import { ExtractedWaterData } from '../types';
 
 const protalkBotToken = import.meta.env.VITE_PROTALK_BOT_TOKEN;
-const protalkBotId = import.meta.env.VITE_PROTALK_BOT_ID;
+const protalkBotId = Number(import.meta.env.VITE_PROTALK_BOT_ID);
+
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 90_000;
 
 const assertProTalkConfig = (): void => {
   if (!protalkBotToken || !protalkBotId) {
@@ -13,41 +16,13 @@ const assertProTalkConfig = (): void => {
 };
 
 /**
- * Clears the chat context by sending /clear command.
+ * Asks the ProTalk bot to scrape TARGET_URL using async submit + polling.
+ * Calls `onStatus` to report stage transitions so the UI can show progress.
  */
-const clearChatContext = async (): Promise<void> => {
-  if (!protalkBotToken || !protalkBotId) {
-    return;
-  }
-
-  const payload = {
-    bot_id: protalkBotId,
-    chat_id: PROTALK_CHAT_ID,
-    message: '/clear',
-  };
-
-  try {
-    await fetch(`${PROTALK_API_URL}/ask/${protalkBotToken}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // Small delay to let context clear complete on the remote side.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  } catch (error) {
-    console.warn('Failed to clear context, continuing anyway:', error);
-  }
-};
-
-/**
- * Sends a command to the ProTalk bot to scrape the target URL using function #18.
- */
-export const fetchRawTextFromUrl = async (): Promise<string> => {
+export const fetchRawTextFromUrl = async (
+  onStatus?: (status: string) => void
+): Promise<string> => {
   assertProTalkConfig();
-  await clearChatContext();
 
   // Keep prompt ASCII-only to avoid encoding issues in external APIs.
   const message =
@@ -56,44 +31,49 @@ export const fetchRawTextFromUrl = async (): Promise<string> => {
     'Return exactly this format: "Water level: XXX cm. 24h change: YYY cm." ' +
     'Where XXX and YYY are numbers (can be negative and decimal).';
 
-  const payload = {
-    bot_id: protalkBotId,
-    chat_id: PROTALK_CHAT_ID,
-    message,
-  };
+  // Unique chat_id per request — no shared history, no /clear needed.
+  const botChatId = `shebsh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  try {
-    const response = await fetch(`${PROTALK_API_URL}/ask/${protalkBotToken}`, {
+  onStatus?.('Отправка запроса…');
+  const sendRes = await fetch(`${PROTALK_EU_API_URL}/send_message_async`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bot_id: protalkBotId,
+      bot_token: protalkBotToken,
+      bot_chat_id: botChatId,
+      message,
+    }),
+  });
+
+  if (!sendRes.ok) {
+    const body = await sendRes.text().catch(() => '');
+    if (sendRes.status === 401) throw new Error('ProTalk API: Unauthorized (check token)');
+    throw new Error(`ProTalk send_message_async ${sendRes.status}: ${body || sendRes.statusText}`);
+  }
+
+  onStatus?.('Ждём ответ ИИ…');
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+    const pollRes = await fetch(`${PROTALK_EU_API_URL}/get_last_reply`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bot_id: protalkBotId,
+        bot_token: protalkBotToken,
+        bot_chat_id: botChatId,
+      }),
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => '');
-      if (response.status === 401) {
-        throw new Error('ProTalk API: Unauthorized (check token)');
-      }
-      if (response.status === 400) {
-        throw new Error(`ProTalk API: Bad Request${errorBody ? ` - ${errorBody}` : ''}`);
-      }
-      throw new Error(
-        `ProTalk API Error ${response.status}: ${errorBody || response.statusText || 'Unknown error'}`
-      );
-    }
-
-    const data: ProTalkResponse = await response.json();
-    if (!data || typeof data.done !== 'string' || !data.done.trim()) {
-      throw new Error('ProTalk API: Empty or unexpected response payload');
-    }
-
-    return data.done;
-  } catch (error) {
-    console.error('ProTalk Service Error:', error);
-    throw error;
+    if (!pollRes.ok) continue;
+    const data = await pollRes.json().catch(() => null);
+    const reply = typeof data?.message === 'string' ? data.message.trim() : '';
+    if (reply) return reply;
   }
+
+  throw new Error(`ProTalk: бот не ответил за ${POLL_TIMEOUT_MS / 1000} секунд`);
 };
 
 /**
@@ -101,18 +81,13 @@ export const fetchRawTextFromUrl = async (): Promise<string> => {
  * Supports negative numbers and decimal values.
  */
 export const parseProTalkRawText = (rawText: string): ExtractedWaterData => {
-  const text = rawText.replace(/\u00A0/g, ' ').trim();
+  const text = rawText.replace(/ /g, ' ').trim();
   const numbersWithUnit = [
-    ...text.matchAll(/(-?\d+(?:[.,]\d+)?)\s*(?:cm|\u0441\u043c)\.?/giu),
+    ...text.matchAll(/(-?\d+(?:[.,]\d+)?)\s*(?:cm|см)\.?/giu),
   ];
-
-  console.log('Raw text:', rawText);
-  console.log('Found numbers:', numbersWithUnit.map((m) => m[1]));
 
   if (numbersWithUnit.length < 2) {
     const justNumbers = [...text.matchAll(/(-?\d+(?:[.,]\d+)?)/g)];
-    console.log('All numbers in text:', justNumbers.map((m) => m[1]));
-
     throw new Error(
       `Could not find enough numeric values with "cm/см". Found: ${numbersWithUnit.length}. ` +
         `All numbers found: ${justNumbers.map((m) => m[1]).join(', ')}. ` +
@@ -129,6 +104,5 @@ export const parseProTalkRawText = (rawText: string): ExtractedWaterData => {
     );
   }
 
-  console.log('Parsed successfully:', { water_level, change_24h });
   return { water_level, change_24h };
 };

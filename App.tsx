@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [latest, setLatest] = useState<WaterRecord | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [updateStatus, setUpdateStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // Load initial data
@@ -57,15 +58,15 @@ const App: React.FC = () => {
   const handleUpdateData = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
+    setUpdateStatus('');
     setError(null);
 
     try {
-      // 1. Get Text via ProTalk
-      console.log('Fetching raw text from ProTalk...');
-      const rawText = await fetchRawTextFromUrl();
+      // 1. Get Text via ProTalk (async submit + polling)
+      const rawText = await fetchRawTextFromUrl(setUpdateStatus);
 
       // 2. Parse Text from ProTalk raw response
-      console.log('Parsing raw text from ProTalk...');
+      setUpdateStatus('Обработка данных…');
       const extracted = parseProTalkRawText(rawText);
 
       // 3. Calculate Trend
@@ -82,8 +83,8 @@ const App: React.FC = () => {
         // relying on the DB default is safer. 
       };
 
-      // 4. Save to Supabase
-      console.log('Saving to Supabase...', newRecord);
+      // 4. Persist
+      setUpdateStatus('Сохранение…');
       await saveWaterRecord(newRecord);
 
       // 5. Refresh UI
@@ -94,6 +95,7 @@ const App: React.FC = () => {
       setError(err.message || 'Не удалось обновить данные о воде');
     } finally {
       setIsUpdating(false);
+      setUpdateStatus('');
     }
   };
 
@@ -124,7 +126,7 @@ const App: React.FC = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Обработка...
+                {updateStatus || 'Обработка…'}
               </>
             ) : (
               <>

@@ -4,9 +4,8 @@
 
 export const TARGET_URL = 'https://allrivers.info/gauge/shebsh-grigoryevskaya/waterlevel';
 
-// ProTalk Config
-export const PROTALK_API_URL = 'https://api.pro-talk.ru/api/v1.0';
-export const PROTALK_CHAT_ID = 'shebsh_monitor_001';
+// ProTalk Config — EU async API (send_message_async + get_last_reply)
+export const PROTALK_EU_API_URL = 'https://eu1.api.pro-talk.ru/api/v1.0';
 
 // Гидрологические данные (в метрах, система высот Балтийская)
 // НЯ затопления (низкая отметка) - соответствует нижней кромке моста
