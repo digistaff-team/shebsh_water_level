@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchWaterHistory, fetchLatestRecord, saveWaterRecord } from './services/supabaseClient';
+import { fetchWaterHistory, fetchLatestRecord, saveWaterRecord } from './services/storageClient';
 import { fetchRawTextFromUrl, parseProTalkRawText } from './services/protalkService';
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';

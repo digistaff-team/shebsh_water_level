@@ -8,9 +8,6 @@ export const TARGET_URL = 'https://allrivers.info/gauge/shebsh-grigoryevskaya/wa
 export const PROTALK_API_URL = 'https://api.pro-talk.ru/api/v1.0';
 export const PROTALK_CHAT_ID = 'shebsh_monitor_001';
 
-// Supabase Config
-export const SUPABASE_TABLE = 'water_levels';
-
 // Гидрологические данные (в метрах, система высот Балтийская)
 // НЯ затопления (низкая отметка) - соответствует нижней кромке моста
 export const BRIDGE_BOTTOM_EDGE_BSV = 35.160; 

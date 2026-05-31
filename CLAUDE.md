@@ -15,9 +15,10 @@ There is no test runner, linter, or typecheck script configured. TypeScript is c
 
 Set in `.env.local` (loaded by Vite via `loadEnv`):
 
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY` — Supabase project credentials. Without these, `supabaseClient` initialises to `null` and the UI renders with empty state instead of throwing.
 - `VITE_PROTALK_BOT_TOKEN`, `VITE_PROTALK_BOT_ID` — ProTalk bot credentials. `protalkService.assertProTalkConfig()` throws if either is missing when the user clicks "Обновить".
 - `GEMINI_API_KEY` — exposed to client code as both `process.env.API_KEY` and `process.env.GEMINI_API_KEY` via `vite.config.ts` `define` (held over from the AI Studio template; `@google/genai` is a dependency but not currently imported anywhere).
+
+Persistence now uses browser `localStorage` (`services/storageClient.ts`) — no Supabase or other backend required.
 
 ## Architecture
 
@@ -25,12 +26,12 @@ Single-page React 19 + Vite + TypeScript app that visualises water-level history
 
 ### Data flow (one update cycle)
 
-1. `App.loadData()` (App.tsx:17) runs on mount: pulls history + latest record from Supabase. If the latest record is older than 24h (or absent), it auto-triggers `handleUpdateData()`.
-2. `handleUpdateData()` (App.tsx:57) orchestrates: ProTalk scrape → parse → derive `Trend` → insert into Supabase → reload UI.
+1. `App.loadData()` (App.tsx:17) runs on mount: pulls history + latest record from `localStorage`. If the latest record is older than 24h (or absent), it auto-triggers `handleUpdateData()`.
+2. `handleUpdateData()` (App.tsx:57) orchestrates: ProTalk scrape → parse → derive `Trend` → save → reload UI.
 3. `services/protalkService.ts`:
    - `fetchRawTextFromUrl()` sends `/clear` to reset chat context, then asks the ProTalk bot to run function `#18 get_text_from_url` against `TARGET_URL` (`https://allrivers.info/gauge/shebsh-grigoryevskaya/waterlevel`) and return a fixed-format string.
    - `parseProTalkRawText()` regex-extracts the two numbers (level in cm, 24h change in cm), tolerating commas as decimal separators and Russian `см` / English `cm` units.
-4. `services/supabaseClient.ts` reads/writes table `water_levels` (constant `SUPABASE_TABLE`). RLS errors (`42501` / "row-level security") are translated into user-actionable messages.
+4. `services/storageClient.ts` reads/writes a JSON array of `WaterRecord` in `localStorage` under key `water_levels`. `saveWaterRecord` assigns an incrementing `id` and an ISO `created_at` server-side-style, so callers don't need to set them. History is per-browser only — clearing site data wipes it.
 
 ### Hydrological constants (constants.ts)
 
