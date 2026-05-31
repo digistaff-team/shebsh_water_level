@@ -114,7 +114,7 @@ export const parseProTalkRawText = (rawText: string): ExtractedWaterData => {
     console.log('All numbers in text:', justNumbers.map((m) => m[1]));
 
     throw new Error(
-      `Could not find enough numeric values with "cm/ñì". Found: ${numbersWithUnit.length}. ` +
+      `Could not find enough numeric values with "cm/ÑÐ¼". Found: ${numbersWithUnit.length}. ` +
         `All numbers found: ${justNumbers.map((m) => m[1]).join(', ')}. ` +
         `Text: ${rawText}`
     );
