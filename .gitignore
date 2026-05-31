@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env.local
+
+docs/
+shebsh_water_level/
