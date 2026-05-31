@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": 1,
+    "water_level": -93.62,
+    "change_24h": 888,
+    "trend": "RISING",
+    "created_at": "2026-05-31T14:29:25.100Z"
+  }
+]
