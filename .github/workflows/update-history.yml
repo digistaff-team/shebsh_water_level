@@ -24,9 +24,6 @@ jobs:
           node-version: '20'
 
       - name: Fetch and append water level
-        env:
-          PROTALK_BOT_TOKEN: ${{ secrets.PROTALK_BOT_TOKEN }}
-          PROTALK_BOT_ID: ${{ secrets.PROTALK_BOT_ID }}
         run: node scripts/fetch-water-data.mjs
 
       - name: Commit changes

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWaterHistory, fetchLatestRecord, saveWaterRecord } from './services/storageClient';
-import { fetchRawTextFromUrl, parseProTalkRawText } from './services/protalkService';
+import { fetchWaterDataLive } from './services/waterApi';
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';
 import StatCard from './components/StatCard';
@@ -54,42 +54,27 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Main logic to fetch new data from ProTalk -> Gemini -> Supabase
   const handleUpdateData = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
-    setUpdateStatus('');
+    setUpdateStatus('Запрос данных…');
     setError(null);
 
     try {
-      // 1. Get Text via ProTalk (async submit + polling)
-      const rawText = await fetchRawTextFromUrl(setUpdateStatus);
+      const extracted = await fetchWaterDataLive();
 
-      // 2. Parse Text from ProTalk raw response
-      setUpdateStatus('Обработка данных…');
-      const extracted = parseProTalkRawText(rawText);
-
-      // 3. Calculate Trend
       let trend: Trend = Trend.STABLE;
       if (extracted.change_24h > 0) trend = Trend.RISING;
       else if (extracted.change_24h < 0) trend = Trend.FALLING;
 
-      const newRecord: WaterRecord = {
+      setUpdateStatus('Сохранение…');
+      await saveWaterRecord({
         water_level: extracted.water_level,
         change_24h: extracted.change_24h,
-        trend: trend,
-        // created_at is handled by Supabase default usually, but we can pass current time
-        // However, Supabase insert usually ignores it if not strictly typed, 
-        // relying on the DB default is safer. 
-      };
+        trend,
+      });
 
-      // 4. Persist
-      setUpdateStatus('Сохранение…');
-      await saveWaterRecord(newRecord);
-
-      // 5. Refresh UI
       await loadData();
-
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Не удалось обновить данные о воде');
