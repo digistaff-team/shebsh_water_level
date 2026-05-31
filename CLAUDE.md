@@ -31,7 +31,10 @@ Single-page React 19 + Vite + TypeScript app that visualises water-level history
 3. `services/protalkService.ts`:
    - `fetchRawTextFromUrl()` sends `/clear` to reset chat context, then asks the ProTalk bot to run function `#18 get_text_from_url` against `TARGET_URL` (`https://allrivers.info/gauge/shebsh-grigoryevskaya/waterlevel`) and return a fixed-format string.
    - `parseProTalkRawText()` regex-extracts the two numbers (level in cm, 24h change in cm), tolerating commas as decimal separators and Russian `см` / English `cm` units.
-4. `services/storageClient.ts` reads/writes a JSON array of `WaterRecord` in `localStorage` under key `water_levels`. `saveWaterRecord` assigns an incrementing `id` and an ISO `created_at` server-side-style, so callers don't need to set them. History is per-browser only — clearing site data wipes it.
+4. `services/storageClient.ts` has two sources:
+   - **Remote** (canonical): `public/history.json`, fetched once per page load. Maintained by `.github/workflows/update-history.yml` — a cron job that runs `scripts/fetch-water-data.mjs` daily at 09:00 UTC (12:00 МСК), appends a fresh `WaterRecord`, and commits the file. The next Vercel deploy ships the updated history.
+   - **Local** (per-browser supplement): `localStorage` under key `water_levels_local`. Used when the user clicks "Обновить" between cron runs, so they see their own ad-hoc readings.
+   `fetchWaterHistory` merges both (remote wins on `created_at` collision) and sorts. `saveWaterRecord` only writes to localStorage — the cron is the only writer to `history.json`. Required GitHub repo secrets for the workflow: `PROTALK_BOT_TOKEN`, `PROTALK_BOT_ID`.
 
 ### Hydrological constants (constants.ts)
 
