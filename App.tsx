@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchWaterHistory, fetchLatestRecord, saveWaterRecord } from './services/storageClient';
 import { fetchWaterDataLive } from './services/waterApi';
+import { trackLaunchAndGetStats, LaunchStats } from './services/analyticsApi';
 import { WaterRecord, Trend } from './types';
 import WaterChart from './components/WaterChart';
 import StatCard from './components/StatCard';
@@ -13,6 +14,7 @@ const App: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [launchStats, setLaunchStats] = useState<LaunchStats | null>(null);
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -51,6 +53,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    trackLaunchAndGetStats().then(setLaunchStats);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -178,8 +181,13 @@ const App: React.FC = () => {
           )}
         </div>
 
-        <div className="text-center text-sm text-slate-400">
-           Источник данных: {latest ? 'AllRivers.info' : 'Ожидание соединения...'}
+        <div className="text-center text-sm text-slate-400 space-y-1">
+          <div>Источник данных: {latest ? 'AllRivers.info' : 'Ожидание соединения...'}</div>
+          {launchStats && (
+            <div>
+              Число запусков: {launchStats.day} за сутки · {launchStats.week} за неделю · {launchStats.month} за месяц
+            </div>
+          )}
         </div>
       </main>
     </div>

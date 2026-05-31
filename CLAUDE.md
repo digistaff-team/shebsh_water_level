@@ -34,6 +34,11 @@ Single-page React 19 + Vite + TypeScript app that visualises Shebsh-river water 
 **Reads (chart + cards):**
 - `services/storageClient.ts` merges `/history.json` (canonical, remote) with `localStorage["water_levels_local"]` (per-browser ad-hoc clicks). Remote wins on `created_at` collision. `saveWaterRecord` only ever writes to localStorage — the cron is the only writer to `history.json`.
 
+**Launch analytics (global counter shown in footer):**
+- `api/launches.ts` — Edge Function backed by Vercel KV (Upstash Redis). POST records a launch (ZADD timestamp); GET returns `{day, week, month, total}` via ZCOUNT/ZCARD.
+- Provisioning: Vercel dashboard → Storage → Upstash KV → attach to project. KV auto-injects `KV_REST_API_URL` and `KV_REST_API_TOKEN` env vars; no `.env.local` change needed.
+- `services/analyticsApi.ts` POSTs once per browser session (deduped via sessionStorage flag), GETs on subsequent renders. Tolerates KV outage by silently returning null, hiding the footer line.
+
 ### The scraper (`services/scrapeAllRivers.mjs`)
 
 Pure JS so both TypeScript (Edge Function) and Node (CI script) can import without a build step. Matches two HTML patterns in the AllRivers page:
