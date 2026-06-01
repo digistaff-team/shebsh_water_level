@@ -27,9 +27,9 @@ Single-page React 19 + Vite + TypeScript app that visualises Shebsh-river water 
 3. App writes the record to localStorage and re-reads history.
 
 **Long-term history (hourly snapshots, shared by all visitors):**
-1. `vercel.json` declares a Vercel Cron at `0 * * * *` hitting `/api/cron/snapshot`.
-2. `api/cron/snapshot.ts` — Edge Function: scrapes AllRivers via `services/scrapeAllRivers.mjs`, then `ZADD`s a compact `{t,l,c}` member into the `history:hourly` ZSET in Vercel KV (score = timestamp ms). Auth via `Authorization: Bearer ${CRON_SECRET}` (Vercel attaches this header automatically when `CRON_SECRET` is set).
-3. Once per UTC day (at 00:00) the same handler rolls hourly entries older than 30 days into `history:daily` — one median-per-day record — and then `ZREMRANGEBYSCORE`s them out of `history:hourly`. So `history:hourly` is bounded to ~720 entries; `history:daily` grows unbounded but cheaply (~365 entries/year).
+1. `.github/workflows/hourly-snapshot.yml` — GitHub Actions cron `0 * * * *` sends `POST /api/cron/snapshot` with `Authorization: Bearer ${CRON_SECRET}`. (Vercel Cron itself is unused: Hobby plan caps schedules at once-per-day, which is why `vercel.json` is absent. Upgrade to Pro to migrate the schedule into Vercel Cron and delete this workflow.)
+2. `api/cron/snapshot.ts` — Edge Function: validates the bearer token, scrapes AllRivers via `services/scrapeAllRivers.mjs`, then `ZADD`s a compact `{t,l,c}` member into the `history:hourly` ZSET in Vercel KV (score = timestamp ms).
+3. Once per UTC day (at 00:00) the same handler rolls hourly entries older than 30 days into `history:daily` — one median-per-day record — and then `ZREMRANGEBYSCORE`s them out of `history:hourly`. So `history:hourly` is bounded to ~720 entries; `history:daily` grows unbounded but cheaply (~365 entries/year). The rollover is idempotent: if a GHA run is missed, the next run absorbs the backlog.
 
 **Reads (chart + cards):**
 - `api/history.ts` — GET Edge Function: `ZRANGE`s both ZSETs, merges, returns `WaterRecord[]` sorted ascending. CDN-cached `s-maxage=60, stale-while-revalidate=300`.
@@ -75,4 +75,4 @@ All level math centres on the Baltic height system ("БСВ"):
 
 - All UI strings are Russian and hardcoded in JSX.
 - No state management library; component-local `useState` + one `loadData` callback is the entire model.
-- Vercel auto-detects `api/` for serverless functions and ships `dist/` (Vite build) as static. `vercel.json` exists only to declare the hourly cron.
+- Vercel auto-detects `api/` for serverless functions and ships `dist/` (Vite build) as static. No `vercel.json` is needed.

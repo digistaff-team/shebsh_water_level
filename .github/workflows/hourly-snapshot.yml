@@ -1,0 +1,34 @@
+name: Hourly water level snapshot
+
+# Pings the production Edge Function, which scrapes AllRivers and ZADDs
+# the reading into Vercel KV (history:hourly). The scrape and KV write
+# happen inside Vercel — this workflow is only a scheduler.
+#
+# Hourly is needed because Vercel Cron on the Hobby plan caps schedules
+# at once-per-day. Upgrading to Pro removes this workaround.
+#
+# Requires the GitHub repository secret CRON_SECRET to match the Vercel
+# project env var of the same name.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: hourly-snapshot
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/snapshot
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 10 \
+            -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://shebsh-water-level.vercel.app/api/cron/snapshot
