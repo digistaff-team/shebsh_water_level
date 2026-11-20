@@ -7,9 +7,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
   Label // Add Label to imports
 } from 'recharts';
-import { GAUGING_STATION_ZERO_BSV } from '../constants';
+import {
+  GAUGING_STATION_ZERO_BSV,
+  BRIDGE_BOTTOM_EDGE_BSV,
+  ROAD_DECK_BSV
+} from '../constants';
 import { WaterRecord } from '../types';
 
 interface WaterChartProps {
@@ -44,6 +49,13 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
     fullDate: item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A',
     water_level_bsv: (item.water_level / 100) + GAUGING_STATION_ZERO_BSV,
   }));
+
+  // Ensure the bridge/road reference lines stay inside the plotted range
+  const levels = formattedData.map(d => d.water_level_bsv);
+  const yDomain: [number, number] = [
+    Math.min(...levels, BRIDGE_BOTTOM_EDGE_BSV) - 0.15,
+    Math.max(...levels, ROAD_DECK_BSV) + 0.15,
+  ];
 
   if (latestDataPerDay.length === 0) {
     return (
@@ -81,7 +93,7 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
             tickMargin={10} // Added tickMargin to give more space between tick and label
           />
           <YAxis 
-            domain={['dataMin - 0.1', 'dataMax + 0.1']}
+            domain={yDomain}
             tickFormatter={(tick) => tick.toFixed(2)}
             tick={{ fill: '#64748b', fontSize: 12 }} 
             axisLine={false}
@@ -106,6 +118,30 @@ const WaterChart: React.FC<WaterChartProps> = ({ data }) => {
             stroke="#0ea5e9"
             fill="url(#colorWater)"
             strokeWidth={2}
+          />
+          <ReferenceLine
+            y={BRIDGE_BOTTOM_EDGE_BSV}
+            stroke="#f59e0b"
+            strokeDasharray="6 4"
+            strokeWidth={2}
+            label={{
+              value: `Нижняя кромка моста (${BRIDGE_BOTTOM_EDGE_BSV.toFixed(2)} м)`,
+              position: 'insideBottomLeft',
+              fill: '#b45309',
+              fontSize: 12,
+            }}
+          />
+          <ReferenceLine
+            y={ROAD_DECK_BSV}
+            stroke="#dc2626"
+            strokeDasharray="6 4"
+            strokeWidth={2}
+            label={{
+              value: `Полотно дороги (${ROAD_DECK_BSV.toFixed(2)} м)`,
+              position: 'insideTopRight',
+              fill: '#dc2626',
+              fontSize: 12,
+            }}
           />
         </AreaChart>
       </ResponsiveContainer>
