@@ -1,48 +1,61 @@
 // Pure-JS scraper shared by the browser-side proxy (api/water-level.ts)
-// and the CI snapshot job (scripts/fetch-water-data.mjs).
+// and the hourly snapshot job (api/cron/snapshot.ts).
 // Returns { water_level: number, change_24h: number } in centimetres.
+//
+// AllRivers no longer embeds the level into the HTML page — the page is a
+// Vue SPA that pulls it from a JSON endpoint. GET /map/gauge/<slug> returns
+// the gauge item with `current_level: { value, sub_level, updated_at }`,
+// where `value` is the water level (cm, relative to the gauging-station zero)
+// and `sub_level` is the signed change over the last 24h (cm). Both are
+// already in the units/shape this module has always returned.
+
+const GAUGE_SLUG = 'shebsh-grigoryevskaya';
 
 export const ALLRIVERS_URL =
-  'https://allrivers.info/gauge/shebsh-grigoryevskaya/waterlevel';
+  `https://allrivers.info/map/gauge/${GAUGE_SLUG}`;
 
-// AllRivers writes the unit as either "cм" (Latin c) or "см" (Cyrillic с),
-// so allow either letter in the character class.
-const LEVEL_RE = /составляет\s*<b>(-?\d+(?:[.,]\d+)?)<\/b>\s*[cс]м/i;
-const CHANGE_RE =
-  /(повысился|понизился|не\s+изменился)(?:\s+на\s*<b>(-?\d+(?:[.,]\d+)?)<\/b>\s*[cс]м)?/i;
+const ALLRIVERS_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (compatible; ShebshMonitor/1.0)',
+  Accept: 'application/json',
+  'X-Requested-With': 'XMLHttpRequest',
+  Referer: `https://allrivers.info/gauge/${GAUGE_SLUG}/waterlevel`,
+};
 
-export function parseWaterDataFromHtml(html) {
-  const levelMatch = html.match(LEVEL_RE);
-  if (!levelMatch) {
-    throw new Error('AllRivers HTML: water level pattern not found');
-  }
-  const water_level = parseFloat(levelMatch[1].replace(',', '.'));
+/**
+ * Extract { water_level, change_24h } from the /map/gauge JSON payload.
+ * Throws when the payload is missing the expected level data.
+ */
+export function parseWaterDataFromJson(payload) {
+  const item = payload?.item;
+  const level = item?.current_level;
+  const rawValue = level?.value;
+  const water_level =
+    typeof rawValue === 'number' ? rawValue : Number(rawValue);
   if (!Number.isFinite(water_level)) {
-    throw new Error(`AllRivers HTML: non-finite water level "${levelMatch[1]}"`);
+    throw new Error(
+      `AllRivers JSON: current_level.value missing or non-finite (${JSON.stringify(
+        rawValue
+      )})`
+    );
   }
 
-  const changeMatch = html.match(CHANGE_RE);
-  const verb = changeMatch?.[1] ?? '';
-  const rawChange = changeMatch?.[2]
-    ? parseFloat(changeMatch[2].replace(',', '.'))
-    : 0;
-  const change_24h = /понизился/i.test(verb)
-    ? -rawChange
-    : /повысился/i.test(verb)
-      ? rawChange
-      : 0;
+  const rawChange = level?.sub_level;
+  const change_24h = Number.isFinite(Number(rawChange)) ? Number(rawChange) : 0;
 
   return { water_level, change_24h };
 }
 
 export async function fetchAndParseWaterData() {
   const res = await fetch(ALLRIVERS_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ShebshMonitor/1.0)' },
+    headers: ALLRIVERS_HEADERS,
     signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) {
     throw new Error(`AllRivers HTTP ${res.status}`);
   }
-  const html = await res.text();
-  return parseWaterDataFromHtml(html);
+  const payload = await res.json();
+  if (payload?.success === false) {
+    throw new Error('AllRivers JSON: request reported success=false');
+  }
+  return parseWaterDataFromJson(payload);
 }

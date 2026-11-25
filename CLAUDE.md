@@ -44,16 +44,16 @@ Single-page React 19 + Vite + TypeScript app that visualises Shebsh-river water 
 
 ### The scraper (`services/scrapeAllRivers.mjs`)
 
-Pure JS so any TypeScript Edge Function can `import` it without a build step (`api/water-level.ts` and `api/cron/snapshot.ts` both do). Matches two HTML patterns in the AllRivers page:
+Pure JS so any TypeScript Edge Function can `import` it without a build step (`api/water-level.ts` and `api/cron/snapshot.ts` both do).
+
+AllRivers no longer embeds the level into the gauge page HTML — the page is a Vue SPA that fetches it from a JSON endpoint. The scraper therefore calls `GET https://allrivers.info/map/gauge/shebsh-grigoryevskaya` with `Accept: application/json` and `X-Requested-With: XMLHttpRequest` (without them the endpoint returns an HTML page), then reads:
 
 ```
-составляет <b>NUMBER</b> [cс]м   → water_level
-(повысился|понизился|не изменился) [на <b>NUMBER</b> [cс]м]   → change_24h with sign
+payload.item.current_level.value      → water_level  (cm, relative to gauging-station zero)
+payload.item.current_level.sub_level  → change_24h   (cm, signed)
 ```
 
-Two non-obvious things:
-- The unit on the page is sometimes written with Latin `c` (`cм`) and sometimes Cyrillic `с` (`см`); the character class `[cс]м` matches either.
-- LLM-based parsers (we previously used ProTalk's GPT-4o-mini) returned change_24h **without a sign** — so a rising vs falling river produced the same number. The verb in the regex restores the sign.
+`parseWaterDataFromJson(payload)` carries the extraction and throws when `current_level.value` is missing or non-finite, so a schema change surfaces as a clear 502 instead of silently writing bad data. The old HTML regex (`составляет <b>N</b> см` / `повысился|понизился`) no longer matches and was removed. `sub_level` is already signed, so no verb parsing is needed.
 
 ### Hydrological constants (constants.ts)
 
